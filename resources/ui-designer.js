@@ -354,15 +354,68 @@
           <button type="button" class="snapforge-btn" id="sfBtnReset" title="Restaurar Dimensões Originais">
             ↺ Reset
           </button>
+          <button type="button" class="snapforge-hud-close" id="sfBtnCloseHUD" title="Ocultar Barra de Ferramentas (Alt+H)">✕</button>
         </div>
       `;
+
+      // Botão Flutuante Discreto para Reabrir a Barra quando Oculta
+      let reopenBtn = document.getElementById('snapforgeReopenBtn');
+      if (!reopenBtn) {
+        reopenBtn = document.createElement('button');
+        reopenBtn.id = 'snapforgeReopenBtn';
+        reopenBtn.className = 'snapforge-hud-reopen-btn';
+        reopenBtn.innerHTML = `<span>⚡ SnapForge</span>`;
+        reopenBtn.title = "Exibir Barra de Ferramentas (Alt+H)";
+        document.body.appendChild(reopenBtn);
+        reopenBtn.addEventListener('click', () => {
+          this.toggleToolbar(true);
+        });
+      }
+      this.reopenBtn = reopenBtn;
 
       document.body.appendChild(hud);
       this.hud = hud;
 
-      // Eventos dos botões do HUD
-      hud.querySelector('#snapforgeBrand').addEventListener('click', () => {
-        hud.classList.toggle('snapforge-minimized');
+      // Arraste Livre do HUD pela Tela
+      let isDraggingHUD = false;
+      let hudStartX = 0, hudStartY = 0;
+      let hudStartLeft = 0, hudStartTop = 0;
+
+      const brand = hud.querySelector('#snapforgeBrand');
+      brand.addEventListener('mousedown', (e) => {
+        isDraggingHUD = true;
+        hud.classList.add('is-moving', 'is-custom-pos');
+        const rect = hud.getBoundingClientRect();
+        hudStartX = e.clientX;
+        hudStartY = e.clientY;
+        hudStartLeft = rect.left;
+        hudStartTop = rect.top;
+        hud.style.left = `${hudStartLeft}px`;
+        hud.style.top = `${hudStartTop}px`;
+        hud.style.bottom = 'auto';
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDraggingHUD) return;
+        const deltaX = e.clientX - hudStartX;
+        const deltaY = e.clientY - hudStartY;
+        let newX = Math.max(10, Math.min(window.innerWidth - hud.offsetWidth - 10, hudStartLeft + deltaX));
+        let newY = Math.max(10, Math.min(window.innerHeight - hud.offsetHeight - 10, hudStartTop + deltaY));
+        hud.style.left = `${newX}px`;
+        hud.style.top = `${newY}px`;
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isDraggingHUD) {
+          isDraggingHUD = false;
+          hud.classList.remove('is-moving');
+        }
+      });
+
+      // Fechar / Ocultar HUD
+      hud.querySelector('#sfBtnCloseHUD').addEventListener('click', () => {
+        this.toggleToolbar(false);
       });
 
       hud.querySelector('#sfDevDesktop').addEventListener('click', () => {
@@ -402,6 +455,20 @@
       hud.querySelector('#sfBtnReset').addEventListener('click', () => {
         this.resetAll(true);
       });
+    },
+
+    toggleToolbar(force) {
+      if (!this.hud) return;
+      const isVisible = force !== undefined ? force : this.hud.style.display !== 'none';
+      if (isVisible) {
+        this.hud.style.display = 'flex';
+        if (this.reopenBtn) this.reopenBtn.classList.remove('show');
+        this.showToast('Barra de ferramentas visível');
+      } else {
+        this.hud.style.display = 'none';
+        if (this.reopenBtn) this.reopenBtn.classList.add('show');
+        this.showToast('Barra oculta (Pressione Alt+H para exibir)');
+      }
     },
 
     setDeviceMode(mode = 'desktop') {
@@ -1066,6 +1133,13 @@
         if (e.altKey && (e.key === 'r' || e.key === 'R')) {
           e.preventDefault();
           self.toggleResizing();
+          return;
+        }
+
+        // Alt + H: Toggle Barra Flutuante de Ferramentas
+        if (e.altKey && (e.key === 'h' || e.key === 'H')) {
+          e.preventDefault();
+          self.toggleToolbar();
           return;
         }
 

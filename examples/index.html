@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voitechrj — Gestão de Serviços & SnapForge UI Studio</title>
+  <title>Voitechrj — SnapForge UI Studio</title>
   <!-- Google Fonts: Inter / Roboto & Roboto Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
        ========================================================================== */
     :root {
       --header-height: 64px;
-      --sidebar-width: 256px; /* w-64 padrão Tailwind */
+      --sidebar-width: 260px;
       --bg-sidebar: #222222;
       --border-sidebar: #333333;
       --bg-main: #181818;
@@ -48,7 +48,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* 1. Header Global Superior (Sincronizado com Linha Contínua) */
+    /* 1. Header Global Superior */
     .top-header-clean {
       height: var(--header-height);
       border-bottom: 1px solid var(--border-sidebar);
@@ -65,6 +65,27 @@
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+
+    /* Botão Alternador do Painel Lateral */
+    .btn-toggle-sidebar {
+      background: #181818;
+      border: 1px solid var(--border-sidebar);
+      color: var(--color-text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-toggle-sidebar:hover {
+      background: #2a2a2a;
+      border-color: #444444;
     }
 
     .header-device-switcher {
@@ -135,11 +156,11 @@
     }
 
     /* ==========================================================================
-       PAINEL ESQUERDO — RÉPLICA 1:1 VOITECHRJ GESTÃO DE SERVIÇOS
+       PAINEL ESQUERDO — ESTILO VOITECHRJ COM FERRAMENTAS DO SNAPFORGE
        ========================================================================== */
     .sidebar-voitech {
       width: var(--sidebar-width);
-      min-width: 200px;
+      min-width: 220px;
       max-width: 420px;
       background: #222222;
       border-right: 1px solid #333333;
@@ -149,15 +170,35 @@
       flex-shrink: 0;
       user-select: none;
       position: relative;
+      transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s ease, opacity 0.2s ease;
     }
 
-    /* Topo da Sidebar: Logo + Voitechrj & GESTÃO DE SERVIÇOS V2.0.0 */
+    .sidebar-voitech.collapsed {
+      width: 0 !important;
+      min-width: 0 !important;
+      opacity: 0 !important;
+      overflow: hidden !important;
+      border-right: none !important;
+      pointer-events: none !important;
+    }
+
+    .layout-resizer.collapsed {
+      display: none !important;
+    }
+
+    /* Topo da Sidebar: Logo + Voitechrj & SNAPFORGE STUDIO V1.2.0 */
     .sidebar-brand-box {
       padding: 12px 16px;
       border-bottom: 1px solid #333333;
       display: flex;
       flex-direction: column;
       gap: 6px;
+    }
+
+    .sidebar-brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .brand-link {
@@ -188,12 +229,26 @@
       transition: color 0.2s ease;
     }
 
-    .brand-link:hover .brand-name {
-      color: #335C8C;
+    .btn-collapse-sidebar {
+      background: transparent;
+      border: none;
+      color: #8B90A0;
+      padding: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .btn-collapse-sidebar:hover {
+      color: #FFFFFF;
+      background: #333333;
     }
 
     .brand-subtitle-line {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       color: #8B90A0;
       text-transform: uppercase;
@@ -206,7 +261,7 @@
       color: #335C8C;
     }
 
-    /* Menu de Navegação Vertical */
+    /* Menu de Ferramentas */
     .sidebar-nav-list {
       flex: 1;
       padding: 12px;
@@ -219,10 +274,10 @@
     .nav-item-btn {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
       padding: 8px 12px;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 400;
       text-decoration: none;
       letter-spacing: -0.3px;
@@ -235,6 +290,15 @@
       transition: all 0.15s ease;
       text-align: left;
       width: 100%;
+    }
+
+    .nav-item-btn-left {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .nav-item-btn svg {
@@ -254,17 +318,26 @@
       color: #EDEDED;
     }
 
-    /* Item Ativo (Ex: Dashboard) */
+    /* Item Ativo */
     .nav-item-btn.active {
       background-color: rgba(51, 92, 140, 0.2);
       color: #FFFFFF;
       font-weight: 600;
       border-left: 4px solid #335C8C;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .nav-item-btn.active svg {
       color: #335C8C;
+    }
+
+    .nav-item-badge {
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #181818;
+      color: #8B90A0;
+      border: 1px solid #333333;
     }
 
     /* Rodapé da Sidebar: Tema Escuro + Sair + Copyright */
@@ -309,7 +382,7 @@
     .btn-theme-toggle svg {
       width: 16px;
       height: 16px;
-      color: #FBBF24; /* Âmbar */
+      color: #FBBF24;
     }
 
     .theme-badge {
@@ -502,7 +575,6 @@
       color: #8B90A0;
     }
 
-    /* Simulação de Itens / Ordens de Serviço */
     .os-item {
       display: flex;
       align-items: center;
@@ -529,7 +601,6 @@
     .os-badge-open { background: rgba(51, 92, 140, 0.25); color: #60a5fa; border: 1px solid rgba(51, 92, 140, 0.4); }
     .os-badge-done { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
 
-    /* Barra de Gráfico */
     .chart-container {
       display: flex;
       align-items: flex-end;
@@ -556,25 +627,31 @@
   <!-- 1. Header Global Superior -->
   <header class="top-header-clean">
     <div class="header-left-info">
+      <!-- Botão para Ocultar / Exibir o Painel Lateral -->
+      <button type="button" class="btn-toggle-sidebar" id="btnToggleSidebar" onclick="toggleSidebar()" title="Ocultar / Exibir Painel Lateral (Alt+S)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+        <span id="txtToggleSidebar">Painel Lateral</span>
+      </button>
+
       <!-- Seletor Responsivo Desktop / Tablet / Mobile -->
       <div class="header-device-switcher">
         <button type="button" class="device-btn active" id="btnDevDesktop" onclick="setDeviceView('100%', this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-          <span>Desktop (100%)</span>
+          <span>Desktop</span>
         </button>
         <button type="button" class="device-btn" id="btnDevTablet" onclick="setDeviceView('768px', this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-          <span>Tablet (768px)</span>
+          <span>Tablet</span>
         </button>
         <button type="button" class="device-btn" id="btnDevMobile" onclick="setDeviceView('390px', this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-          <span>Mobile (390px)</span>
+          <span>Mobile</span>
         </button>
       </div>
     </div>
 
     <div class="header-actions">
-      <span style="font-size:12px; color:#8B90A0;">Gestão de Serviços Voitechrj • Layout Designer</span>
+      <span style="font-size:12px; color:#8B90A0;">SnapForge UI Studio • Ferramentas Visuais</span>
       <button class="btn-export-top" onclick="SnapForge.openExportModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         <span>Exportar Layout</span>
@@ -586,79 +663,109 @@
   <div class="app-workspace">
 
     <!-- ====================================================================
-         PAINEL ESQUERDO (SIDEBAR OFICIAL VOITECHRJ)
+         PAINEL ESQUERDO: FERRAMENTAS DO SNAPFORGE (ESTILO VOITECHRJ)
          ==================================================================== -->
-    <aside class="sidebar-voitech">
+    <aside class="sidebar-voitech" id="mainSidebar">
       
-      <!-- Topo da Sidebar: Logo + Nome Voitechrj & Nome do App + Versão -->
+      <!-- Topo da Sidebar: Logo + Nome da Ferramenta + Versão + Botão de Recolher -->
       <div class="sidebar-brand-box">
-        <a href="https://voitech-rj.github.io/" target="_blank" class="brand-link" title="Acessar Voitechrj">
-          <img src="assets/voitechrj-logo.png" alt="Voitechrj Logo" class="brand-logo-img">
-          <span class="brand-name">Voitechrj</span>
-        </a>
+        <div class="sidebar-brand-row">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="assets/voitechrj-logo.png" alt="SnapForge Logo" class="brand-logo-img">
+            <span class="brand-name">SnapForge UI</span>
+          </div>
+          <button type="button" class="btn-collapse-sidebar" onclick="toggleSidebar()" title="Recolher Painel Lateral">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+        </div>
         <div class="brand-subtitle-line">
-          GESTÃO DE SERVIÇOS <span>V2.0.0</span>
+          LAYOUT BUILDER <span>V1.2.0</span>
         </div>
       </div>
 
-      <!-- Menu de Navegação Vertical -->
+      <!-- Menu de Ferramentas do SnapForge -->
       <nav class="sidebar-nav-list">
-        <!-- 1. Dashboard (Ativo) -->
-        <button type="button" class="nav-item-btn active">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-          <span>Dashboard</span>
+        
+        <!-- 1. Modo Designer (Alt + D) -->
+        <button type="button" class="nav-item-btn active" id="btnSideEdges" onclick="SnapForge.toggleEdges()">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            <span>Modo Designer</span>
+          </div>
+          <span class="nav-item-badge">Alt+D</span>
         </button>
 
-        <!-- 2. Clientes -->
-        <button type="button" class="nav-item-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          <span>Clientes</span>
+        <!-- 2. Redimensionamento 4 Lados -->
+        <button type="button" class="nav-item-btn" id="btnSideResize" onclick="SnapForge.toggleResizing()">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            <span>Redimensionar</span>
+          </div>
+          <span class="nav-item-badge">4 Lados</span>
         </button>
 
-        <!-- 3. Serviços -->
-        <button type="button" class="nav-item-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-          <span>Serviços</span>
+        <!-- 3. Ímã Magnético -->
+        <button type="button" class="nav-item-btn" id="btnSideMagnet" onclick="SnapForge.toggleMagnetic()">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M4 17v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path><path d="M12 2v20"></path></svg>
+            <span>Ímã Magnético</span>
+          </div>
+          <span class="nav-item-badge">14px</span>
         </button>
 
-        <!-- 4. Notas (OS) -->
-        <button type="button" class="nav-item-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          <span>Notas (OS)</span>
+        <!-- 4. Arraste & Soltar (Divs) -->
+        <button type="button" class="nav-item-btn" onclick="SnapForge.showToast('Segure pela alça ⠿ nos cards para mover entre divs!')">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="19" r="1"></circle></svg>
+            <span>Arrastar & Soltar</span>
+          </div>
+          <span class="nav-item-badge">Divs</span>
         </button>
 
-        <!-- 5. Configuração -->
-        <button type="button" class="nav-item-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span>Configuração</span>
+        <!-- 5. Exportar Layout -->
+        <button type="button" class="nav-item-btn" onclick="SnapForge.openExportModal()">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Exportar Código</span>
+          </div>
+          <span class="nav-item-badge">CSS/HTML</span>
         </button>
+
+        <!-- 6. Desfazer (Ctrl+Z) -->
+        <button type="button" class="nav-item-btn" onclick="SnapForge.undo()">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+            <span>Desfazer</span>
+          </div>
+          <span class="nav-item-badge">Ctrl+Z</span>
+        </button>
+
+        <!-- 7. Refazer (Ctrl+Y) -->
+        <button type="button" class="nav-item-btn" onclick="SnapForge.redo()">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            <span>Refazer</span>
+          </div>
+          <span class="nav-item-badge">Ctrl+Y</span>
+        </button>
+
+        <!-- 8. Resetar Layout -->
+        <button type="button" class="nav-item-btn" onclick="SnapForge.resetAll(true)">
+          <div class="nav-item-btn-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+            <span>Resetar Layout</span>
+          </div>
+        </button>
+
       </nav>
 
-      <!-- Rodapé da Sidebar: Alternador de Tema + Botão Sair + Copyright -->
-      <div class="sidebar-footer-box">
-        
-        <!-- Botão Alternador de Tema -->
-        <button type="button" class="btn-theme-toggle" title="Tema do Sistema">
-          <div class="btn-theme-toggle-left">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-            <span>Tema Escuro</span>
-          </div>
-          <span class="theme-badge">DARK</span>
-        </button>
-
-        <!-- Botão Sair -->
-        <button type="button" class="btn-logout" title="Encerrar Sessão">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          <span>Sair</span>
-        </button>
-
-        <!-- Copyright © 2026 VOITECHRJ com link -->
-        <div class="sidebar-copyright">
+      <!-- Rodapé da Sidebar: Apenas Copyright com Link Oficial Voitechrj -->
+      <div class="sidebar-footer-box" style="padding:14px 16px;">
+        <div class="sidebar-copyright" style="padding-top:0; border-top:none;">
           <span>
             © 2026 <a href="https://voitech-rj.github.io/" target="_blank" rel="noopener noreferrer">VOITECHRJ</a>
           </span>
         </div>
-
       </div>
 
     </aside>
@@ -670,14 +777,15 @@
     <main class="page-viewport">
       <div class="app-page active">
 
-        <!-- Banner Explicativo -->
+        <!-- Banner Informativo -->
         <div class="banner-top-panel">
           <div>
-            <div class="banner-title">Painel de Ajustes de Layout & Modelagem Visual</div>
-            <div class="banner-desc">Use os 4 lados para redimensionar cartões, segure pelo <b>⠿</b> para arrastar entre linhas, e use o seletor acima para testar em Mobile!</div>
+            <div class="banner-title">Ambiente Interativo de Modelagem Visual</div>
+            <div class="banner-desc">Use os 4 lados para redimensionar cartões, segure pelo <b>⠿</b> para arrastar entre linhas, e oculte a barra lateral ou a barra flutuante quando quiser focar!</div>
           </div>
           <div class="banner-tags">
             <span class="tag-key">Alt + D (Bordas)</span>
+            <span class="tag-key">Alt + H (Barra HUD)</span>
             <span class="tag-key">Ctrl + Z (Desfazer)</span>
           </div>
         </div>
@@ -802,6 +910,16 @@
       else if (width === '390px') SnapForge.setDeviceMode('mobile');
     }
 
+    // Alternar Barra Lateral (Ocultar / Exibir)
+    function toggleSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const resizer = document.querySelector('.layout-resizer');
+      if (!sidebar) return;
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      if (resizer) resizer.classList.toggle('collapsed', isCollapsed);
+      SnapForge.showToast(isCollapsed ? 'Painel lateral recolhido' : 'Painel lateral visível');
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       SnapForge.init({
         cardSelector: '.panel-card',
@@ -813,6 +931,17 @@
         enableDragDrop: true,
         snapThreshold: 14
       });
+
+      // Sincroniza estado dos botões da sidebar com o SnapForge
+      const sideEdges = document.getElementById('btnSideEdges');
+      const sideResize = document.getElementById('btnSideResize');
+      const sideMagnet = document.getElementById('btnSideMagnet');
+
+      setInterval(() => {
+        if (sideEdges) sideEdges.classList.toggle('active', document.body.classList.contains('debug-edges'));
+        if (sideResize) sideResize.classList.toggle('active', document.body.classList.contains('enable-resizing'));
+        if (sideMagnet) sideMagnet.classList.toggle('active', !!SnapForge.options.enableMagneticSnap);
+      }, 250);
     });
   </script>
 </body>
