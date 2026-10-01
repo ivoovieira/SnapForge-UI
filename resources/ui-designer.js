@@ -67,6 +67,12 @@
       // 7. Registra Atalhos Globais de Teclado
       this._bindKeyboardEvents();
 
+      // 8. Inicializa Controles de Cards (Exclusão), Placeholders/Grips de Linhas e Alça Direita da Página
+      this._initCardControls();
+      this._ensureRowPlaceholders();
+      this._syncRowSplitters();
+      this._initPageRightGrip();
+
       // Restaura toggles salvos no localStorage
       const savedEdges = localStorage.getItem(`${this.storagePrefix}_edges`);
       if (savedEdges === 'true') this.toggleEdges(true);
@@ -193,6 +199,16 @@
           } catch (e) {}
         }
       });
+
+      // Restaura dimensões salvas de linhas/divs
+      document.querySelectorAll(this.options.dropzoneSelector).forEach((row) => {
+        if (!row.id) return;
+        const savedH = localStorage.getItem(`${this.storagePrefix}_row_${row.id}_height`);
+        if (savedH) {
+          row.style.height = savedH;
+          row.style.minHeight = savedH;
+        }
+      });
     },
 
     /* ==========================================================================
@@ -300,6 +316,8 @@
           localStorage.setItem(`${self.storagePrefix}_card_${draggedCard.id}`, JSON.stringify(currentSave));
         }
 
+        self._ensureRowPlaceholders();
+        self._syncRowSplitters();
         self.showToast('Card reposicionado entre containers!');
         self._updateToolbarState();
         draggedCard = null;
@@ -473,7 +491,7 @@
 
     setDeviceMode(mode = 'desktop') {
       this.deviceMode = mode;
-      const pageEl = document.querySelector(this.options.pageSelector);
+      const pageEl = document.querySelector(this.options.pageSelector) || document.querySelector('.app-page');
 
       if (this.hud) {
         const dBtn = this.hud.querySelector('#sfDevDesktop');
@@ -495,6 +513,7 @@
           width = '390px';
         }
         document.documentElement.style.setProperty('--page-width', width);
+        pageEl.style.width = width;
       }
 
       this.showToast(`Visualização: ${mode.toUpperCase()}`);
@@ -771,6 +790,15 @@
       document.documentElement.style.removeProperty('--page-width');
       localStorage.removeItem(`${this.storagePrefix}_page_width`);
 
+      // Limpa dimensões salvas de linhas/divs
+      document.querySelectorAll(this.options.dropzoneSelector).forEach((row) => {
+        row.style.height = '';
+        row.style.minHeight = '';
+        if (row.id) {
+          localStorage.removeItem(`${this.storagePrefix}_row_${row.id}_height`);
+        }
+      });
+
       const curPage = document.querySelector(this.options.pageSelector);
       if (curPage) {
         curPage.style.width = '';
@@ -782,6 +810,284 @@
     },
 
     /* ==========================================================================
+       Manipulação de Divs / Linhas e Cartões (Adicionar, Excluir e Placeholders)
+       ========================================================================== */
+    addNewRow(customParent) {
+      this.pushHistory();
+      const parent = customParent || document.querySelector(this.options.pageSelector) || document.querySelector('.app-page.active') || document.body;
+      const rowId = `row-${Date.now()}`;
+      const row = document.createElement('div');
+      row.className = 'dashboard-row empty-row';
+      row.id = rowId;
+      row.setAttribute('data-dropzone', 'true');
+      row.style.minHeight = '180px';
+
+      // Botão excluir div
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn-remove-row';
+      delBtn.title = 'Excluir esta Div';
+      delBtn.innerHTML = '<span>✕ Excluir Div</span>';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.removeRow(row);
+      });
+      row.appendChild(delBtn);
+
+      // Placeholder
+      const placeholder = document.createElement('div');
+      placeholder.className = 'empty-row-placeholder';
+      placeholder.innerHTML = '<span class="empty-row-icon">📥</span><span>Div Vazia • Arraste cards para cá ou ajuste a altura</span>';
+      row.appendChild(placeholder);
+
+      // Grip de redimensionamento inferior
+      const grip = document.createElement('div');
+      grip.className = 'row-resizer-grip';
+      grip.title = 'Arraste para redimensionar a altura desta Div';
+      row.appendChild(grip);
+
+      // Insere antes da alça de redimensionamento da página se existir, senão anexa no final
+      const pageGrip = parent.querySelector('.page-resizer-right-grip');
+      if (pageGrip) {
+        parent.insertBefore(row, pageGrip);
+      } else {
+        parent.appendChild(row);
+      }
+
+      this._ensureRowPlaceholders();
+      this._syncRowSplitters();
+      this.showToast('Nova Div vazia adicionada! Arraste cards ou adicione colunas.');
+      return row;
+    },
+
+    addNewDiv(customParent) {
+      return this.addNewRow(customParent);
+    },
+
+    addNewColumn(targetRow, count = 1) {
+      this.pushHistory();
+      let row = targetRow;
+      if (!row || !row.classList || !row.classList.contains('dashboard-row')) {
+        row = document.querySelector('.dashboard-row.empty-row') || document.querySelector(this.options.dropzoneSelector);
+      }
+      if (!row) {
+        row = this.addNewRow();
+      }
+
+      for (let i = 0; i < count; i++) {
+        const cardId = `card-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const card = document.createElement('div');
+        card.className = 'panel-card';
+        card.id = cardId;
+
+        // Usa flex:1 para o novo card se encaixar responsivamente
+        card.style.flex = '1 1 0';
+        card.style.width = '';
+        card.style.minWidth = '0';
+
+        card.innerHTML = `
+          <div class="panel-card-head">
+            <div class="panel-card-title-wrap">
+              <span class="drag-handle" title="Arraste este card">⠿</span>
+              <span class="panel-card-title" contenteditable="true" spellcheck="false" title="Clique para editar o título">Nova Coluna</span>
+            </div>
+            <button type="button" class="btn-remove-card" title="Excluir esta coluna">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          <div class="panel-card-body">
+            <div contenteditable="true" spellcheck="false" style="outline:none; min-height:80px; font-size:13px; color:#EDEDED; line-height:1.6;" title="Clique para digitar texto">
+              Div / Coluna interna. Digite seu texto aqui ou redimensione pelos 4 lados.
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.btn-remove-card').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.removeCard(card);
+        });
+
+        const grip = row.querySelector('.row-resizer-grip');
+        if (grip) {
+          row.insertBefore(card, grip);
+        } else {
+          row.appendChild(card);
+        }
+      }
+
+      // Redistribuir todos os cards da row igualmente com flex:1
+      // para garantir que caibam responsivamente dentro do container
+      const allCards = Array.from(row.querySelectorAll(this.options.cardSelector));
+      allCards.forEach((c) => {
+        c.style.flex = '1 1 0';
+        c.style.width = '';
+        c.style.minWidth = '0';
+      });
+
+      this._ensureRowPlaceholders();
+      this._syncRowSplitters();
+      this.showToast(`${count > 1 ? count + ' colunas adicionadas' : 'Nova coluna adicionada'} à Div!`);
+      return row;
+    },
+
+    addNewCard(targetRow, count = 1) {
+      return this.addNewColumn(targetRow, count);
+    },
+
+    removeRow(row) {
+      if (!row) return;
+      this.pushHistory();
+      const cards = row.querySelectorAll(this.options.cardSelector);
+      if (cards.length > 0) {
+        if (!confirm(`Esta Div contém ${cards.length} coluna/card(s). Deseja realmente excluí-la? (Você poderá desfazer com Ctrl+Z)`)) {
+          return;
+        }
+      }
+      if (row.id) {
+        localStorage.removeItem(`${this.storagePrefix}_row_${row.id}_height`);
+      }
+      row.remove();
+      this._syncRowSplitters();
+      this.showToast('Div excluída (Ctrl+Z para desfazer)');
+    },
+
+    removeCard(card) {
+      if (!card) return;
+      this.pushHistory();
+      if (card.id) {
+        localStorage.removeItem(`${this.storagePrefix}_card_${card.id}`);
+      }
+      const parentRow = card.closest(this.options.dropzoneSelector);
+      card.remove();
+      if (parentRow) {
+        this._ensureRowPlaceholders();
+        this._syncRowSplitters();
+      }
+      this.showToast('Coluna/Card excluído (Ctrl+Z para desfazer)');
+    },
+
+    _initCardControls() {
+      document.querySelectorAll(this.options.cardSelector).forEach((card) => {
+        const head = card.querySelector('.panel-card-head');
+        if (head && !head.querySelector('.btn-remove-card')) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn-remove-card';
+          btn.title = 'Excluir esta coluna';
+          btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.removeCard(card);
+          });
+          head.appendChild(btn);
+        }
+      });
+    },
+
+    _syncRowSplitters() {
+      // Remove quaisquer splitters legados dentro das linhas de cards
+      // para manter o redimensionamento direto e independente nas 4 bordas de cada card
+      document.querySelectorAll(this.options.dropzoneSelector).forEach((row) => {
+        row.querySelectorAll(':scope > .layout-resizer').forEach((resizer) => resizer.remove());
+      });
+      this._bindSplitters();
+    },
+
+    _ensureRowPlaceholders() {
+      document.querySelectorAll(this.options.dropzoneSelector).forEach((row) => {
+        const cards = row.querySelectorAll(this.options.cardSelector);
+        let placeholder = row.querySelector('.empty-row-placeholder');
+        let grip = row.querySelector('.row-resizer-grip');
+        let delBtn = row.querySelector('.btn-remove-row');
+        let addColBtn = row.querySelector('.btn-add-col-row');
+
+        if (!grip) {
+          grip = document.createElement('div');
+          grip.className = 'row-resizer-grip';
+          grip.title = 'Arraste para redimensionar a altura desta Div';
+          row.appendChild(grip);
+        }
+
+        if (!delBtn) {
+          delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'btn-remove-row';
+          delBtn.title = 'Excluir esta Div';
+          delBtn.innerHTML = '<span>✕ Excluir Div</span>';
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.removeRow(row);
+          });
+          row.appendChild(delBtn);
+        }
+
+        if (!addColBtn) {
+          addColBtn = document.createElement('button');
+          addColBtn.type = 'button';
+          addColBtn.className = 'btn-add-col-row';
+          addColBtn.title = 'Adicionar nova coluna a esta Div';
+          addColBtn.innerHTML = '<span>+ Coluna</span>';
+          addColBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.addNewColumn(row, 1);
+          });
+          row.appendChild(addColBtn);
+        }
+
+        if (cards.length === 0) {
+          row.classList.add('empty-row');
+          if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.className = 'empty-row-placeholder';
+            row.appendChild(placeholder);
+          }
+          placeholder.innerHTML = `
+            <div class="empty-row-title-box">
+              <span class="empty-row-icon">📥</span>
+              <span>Linha Vazia — Adicione colunas internas ou arraste cards para cá:</span>
+            </div>
+            <div class="empty-row-btn-group">
+              <button type="button" class="btn-empty-action" data-cols="1">
+                ➕ 1 Coluna
+              </button>
+              <button type="button" class="btn-empty-action" data-cols="2">
+                ⊞ 2 Colunas
+              </button>
+              <button type="button" class="btn-empty-action" data-cols="3">
+                ⊟ 3 Colunas
+              </button>
+            </div>
+          `;
+          placeholder.querySelectorAll('.btn-empty-action').forEach((b) => {
+            b.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const num = parseInt(b.dataset.cols, 10) || 1;
+              this.addNewColumn(row, num);
+            });
+          });
+          placeholder.style.display = 'flex';
+          addColBtn.style.display = 'none';
+        } else {
+          row.classList.remove('empty-row');
+          if (placeholder) {
+            placeholder.style.display = 'none';
+          }
+          addColBtn.style.display = 'inline-flex';
+        }
+      });
+    },
+
+    _initPageRightGrip() {
+      const page = document.querySelector(this.options.pageSelector) || document.querySelector('.app-page');
+      if (page && !page.querySelector('.page-resizer-right-grip')) {
+        const grip = document.createElement('div');
+        grip.className = 'page-resizer-right-grip';
+        grip.title = 'Arraste para redimensionar a largura da página';
+        page.appendChild(grip);
+      }
+    },
+
+    /* ==========================================================================
        Motor de Arraste e Redimensionamento com Ímã Magnético
        ========================================================================== */
     _bindMouseEvents() {
@@ -790,6 +1096,9 @@
       let activeDir = null;
       let activePage = null;
       let activePageDir = null;
+      let activeRow = null;
+      let activeRowDir = null;
+      let startRowH = 0;
       let startMouseX = 0, startMouseY = 0;
       let startW = 0, startH = 0;
       let startMarginTop = 0, startMarginLeft = 0;
@@ -798,6 +1107,16 @@
 
       document.addEventListener('mousemove', (e) => {
         if (!document.body.classList.contains('enable-resizing')) return;
+
+        // 0. Arraste ativo de Linha / Div
+        if (activeRow && activeRowDir === 'row-s') {
+          const deltaY = e.clientY - startMouseY;
+          const newH = Math.max(80, startRowH + deltaY);
+          activeRow.style.height = `${newH}px`;
+          activeRow.style.minHeight = `${newH}px`;
+          self._showDimensionBadge(activeRow.offsetWidth, newH, e.clientX, e.clientY, false);
+          return;
+        }
 
         // A. Arraste ativo da página (Container Azul)
         if (activePage && activePageDir) {
@@ -907,18 +1226,32 @@
           const nearLeft = Math.abs(e.clientX - rect.left) <= hit;
           const nearRight = Math.abs(e.clientX - rect.right) <= hit;
 
-          if (nearBottom) { target.style.cursor = 's-resize'; return; }
-          if (nearTop) { target.style.cursor = 'n-resize'; return; }
-          if (nearRight) { target.style.cursor = 'e-resize'; return; }
-          if (nearLeft) { target.style.cursor = 'w-resize'; return; }
+          if (nearBottom) { target.style.cursor = 'row-resize'; return; }
+          if (nearTop) { target.style.cursor = 'row-resize'; return; }
+          if (nearRight) { target.style.cursor = 'col-resize'; return; }
+          if (nearLeft) { target.style.cursor = 'col-resize'; return; }
           target.style.cursor = '';
+        }
+
+        // C2. Hover sobre Grip inferior de Linha / Div (.row-resizer-grip)
+        const rowGrip = e.target.closest('.row-resizer-grip');
+        if (rowGrip) {
+          document.body.style.cursor = 'row-resize';
+          return;
+        }
+
+        // C3. Hover sobre Grip da borda direita da Página (.page-resizer-right-grip)
+        const pageGrip = e.target.closest('.page-resizer-right-grip');
+        if (pageGrip) {
+          document.body.style.cursor = 'col-resize';
+          return;
         }
 
         // D. Hover sobre Limites do Container da Página (Caixa Azul)
         const curPage = document.querySelector(self.options.pageSelector);
         if (curPage && !target) {
           const pr = curPage.getBoundingClientRect();
-          const hit = 14;
+          const hit = 18;
           const nearRight = Math.abs(e.clientX - pr.right) <= hit && (e.clientY >= pr.top && e.clientY <= pr.bottom + hit);
           const nearBottom = Math.abs(e.clientY - pr.bottom) <= hit && (e.clientX >= pr.left && e.clientX <= pr.right + hit);
 
@@ -931,7 +1264,7 @@
             curPage.style.cursor = 'row-resize';
             return;
           } else {
-            if (!activeCard && !activePage) {
+            if (!activeCard && !activePage && !activeRow) {
               document.body.style.cursor = '';
               curPage.style.cursor = '';
             }
@@ -942,6 +1275,40 @@
       document.addEventListener('mousedown', (e) => {
         if (!document.body.classList.contains('enable-resizing')) return;
         if (e.target.closest('input, select, textarea, button, a, .snapforge-hud, .snapforge-modal-backdrop, .drag-handle')) return;
+
+        // 0. Clique em Grip de Redimensionamento Direito da Página
+        const pageGrip = e.target.closest('.page-resizer-right-grip');
+        if (pageGrip) {
+          const curPage = document.querySelector(self.options.pageSelector) || document.querySelector('.app-page');
+          if (curPage) {
+            self.pushHistory();
+            activePage = curPage;
+            activePageDir = 'page-e';
+            startMouseX = e.clientX;
+            startW = curPage.offsetWidth;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+            return;
+          }
+        }
+
+        // 0.1 Clique em Grip de Redimensionamento de Linha / Div
+        const grip = e.target.closest('.row-resizer-grip');
+        if (grip) {
+          const targetRow = grip.closest(self.options.dropzoneSelector);
+          if (targetRow) {
+            self.pushHistory();
+            activeRow = targetRow;
+            activeRowDir = 'row-s';
+            startMouseY = e.clientY;
+            startRowH = targetRow.offsetHeight;
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+            return;
+          }
+        }
 
         // Clique em Card Individual
         const target = e.target.closest(self.options.cardSelector);
@@ -960,6 +1327,20 @@
           else return;
 
           self.pushHistory();
+
+          // Desacoplamento Total de Irmãos na Linha:
+          // Converte todos os cards da mesma linha para largura pixel explícita e flex: 0 0 auto
+          // Assim, diminuir ou aumentar um card NUNCA puxa ou empurra os cards vizinhos!
+          if (target.parentElement) {
+            const siblings = target.parentElement.querySelectorAll(self.options.cardSelector);
+            siblings.forEach((c) => {
+              if (!c.style.width || c.style.flex !== '0 0 auto') {
+                c.style.width = `${c.offsetWidth}px`;
+              }
+              c.style.flex = '0 0 auto';
+            });
+          }
+
           activeCard = target;
           startMouseX = e.clientX;
           startMouseY = e.clientY;
@@ -1030,15 +1411,20 @@
 
         if (activeCard && activeDir) {
           activeCard.classList.remove(`resizing-${activeDir}`);
-          if (activeCard.id) {
-            const saveObj = {
-              w: activeCard.style.width,
-              h: activeCard.style.height,
-              mt: activeCard.style.marginTop,
-              ml: activeCard.style.marginLeft,
-              parentId: activeCard.parentElement && activeCard.parentElement.id ? activeCard.parentElement.id : null
-            };
-            localStorage.setItem(`${self.storagePrefix}_card_${activeCard.id}`, JSON.stringify(saveObj));
+          if (activeCard.parentElement) {
+            const siblings = activeCard.parentElement.querySelectorAll(self.options.cardSelector);
+            siblings.forEach((c) => {
+              if (c.id && c.style.width) {
+                const saveObj = {
+                  w: c.style.width,
+                  h: c.style.height,
+                  mt: c.style.marginTop,
+                  ml: c.style.marginLeft,
+                  parentId: c.parentElement && c.parentElement.id ? c.parentElement.id : null
+                };
+                localStorage.setItem(`${self.storagePrefix}_card_${c.id}`, JSON.stringify(saveObj));
+              }
+            });
           }
           activeCard = null;
           activeDir = null;
@@ -1055,6 +1441,16 @@
           document.body.style.cursor = '';
           document.body.style.userSelect = '';
         }
+
+        if (activeRow && activeRowDir) {
+          if (activeRow.id) {
+            localStorage.setItem(`${self.storagePrefix}_row_${activeRow.id}_height`, activeRow.style.height);
+          }
+          activeRow = null;
+          activeRowDir = null;
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        }
       });
 
       // Splitters de Colunas e Linhas (.layout-resizer)
@@ -1064,6 +1460,9 @@
     _bindSplitters() {
       const self = this;
       document.querySelectorAll('.layout-resizer, .layout-resizer-vertical').forEach((resizer) => {
+        if (resizer._sfBound) return;
+        resizer._sfBound = true;
+
         let isDragging = false;
         let startPos = 0;
         let prevEl = null;
@@ -1096,10 +1495,12 @@
           if (isVertical) {
             const newH = Math.max(60, prevStartSize + delta);
             prevEl.style.height = `${newH}px`;
+            self._showDimensionBadge(prevEl.offsetWidth, newH, e.clientX, e.clientY, false);
           } else {
-            const newW = Math.max(60, prevStartSize + delta);
+            const newW = Math.max(100, prevStartSize + delta);
             prevEl.style.width = `${newW}px`;
             prevEl.style.flex = 'none';
+            self._showDimensionBadge(newW, prevEl.offsetHeight, e.clientX, e.clientY, false);
           }
         });
 
@@ -1109,6 +1510,13 @@
             resizer.classList.remove('is-dragging');
             document.body.style.userSelect = '';
             document.body.style.cursor = '';
+            self._hideGuides();
+            if (prevEl && prevEl.id) {
+              const currentSave = JSON.parse(localStorage.getItem(`${self.storagePrefix}_card_${prevEl.id}`) || '{}');
+              currentSave.w = prevEl.style.width;
+              if (isVertical) currentSave.h = prevEl.style.height;
+              localStorage.setItem(`${self.storagePrefix}_card_${prevEl.id}`, JSON.stringify(currentSave));
+            }
           }
         });
       });
@@ -1164,7 +1572,8 @@
     captureSnapshot() {
       const snap = {
         pageWidth: document.documentElement.style.getPropertyValue('--page-width') || '100%',
-        cards: {}
+        cards: {},
+        rows: {}
       };
       document.querySelectorAll(`${this.options.cardSelector}[id]`).forEach((card) => {
         snap.cards[card.id] = {
@@ -1177,6 +1586,12 @@
           nextSiblingId: card.nextElementSibling && card.nextElementSibling.id ? card.nextElementSibling.id : null
         };
       });
+      document.querySelectorAll(`${this.options.dropzoneSelector}[id]`).forEach((row) => {
+        snap.rows[row.id] = {
+          h: row.style.height || '',
+          minH: row.style.minHeight || ''
+        };
+      });
       return snap;
     },
 
@@ -1184,6 +1599,15 @@
       if (!snap) return;
       if (snap.pageWidth) {
         document.documentElement.style.setProperty('--page-width', snap.pageWidth);
+      }
+      if (snap.rows) {
+        Object.keys(snap.rows).forEach((id) => {
+          const row = document.getElementById(id);
+          if (row) {
+            row.style.height = snap.rows[id].h || '';
+            row.style.minHeight = snap.rows[id].minH || '';
+          }
+        });
       }
       if (snap.cards) {
         Object.keys(snap.cards).forEach((id) => {
@@ -1221,6 +1645,7 @@
           }
         });
       }
+      this._ensureRowPlaceholders();
       this._updateToolbarState();
     },
 
