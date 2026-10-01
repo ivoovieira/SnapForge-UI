@@ -1,7 +1,7 @@
 /**
- * SnapForge UI - Universal Precision Layout Designer & Magnetic Snapping Engine
+ * SnapForge UI - Universal Precision Layout Designer & In-Browser Visual Builder
  * Zero-dependency universal library for visual edge inspection, 4-way interactive resizing,
- * magnetic snap alignment guides, page container bounds, layout exporter (CSS/Tailwind/JSON),
+ * magnetic snap alignment guides, drag-and-drop reparenting between divs, layout exporter (CSS/Tailwind/HTML/JSON),
  * undo/redo history, and floating designer HUD.
  *
  * @author Ivo Vieira <voitechrj@gmail.com>
@@ -13,7 +13,7 @@
   'use strict';
 
   const SnapForge = {
-    version: '1.1.0',
+    version: '1.2.0',
     historyStack: [],
     redoStack: [],
     maxHistory: 30,
@@ -21,9 +21,11 @@
     options: {
       cardSelector: '.panel-card',
       pageSelector: '.app-page.active',
+      dropzoneSelector: '.dashboard-row, [data-dropzone="true"]',
       storagePrefix: 'snapforge',
       showToolbar: true,
       enableMagneticSnap: true,
+      enableDragDrop: true,
       snapThreshold: 14
     },
 
@@ -33,6 +35,7 @@
     hud: null,
     modalBackdrop: null,
     toastEl: null,
+    dropIndicator: null,
 
     init(userOptions = {}) {
       this.options = Object.assign({}, this.options, userOptions);
@@ -41,7 +44,7 @@
       // 1. Injeta Guias Magnéticas Fluorescentes
       this._initGuides();
 
-      // 2. Restaura Estado Salvo (Página e Cards)
+      // 2. Restaura Estado Salvo (Página, Cards e Hierarquia)
       this._restoreSavedDimensions();
 
       // 3. Injeta Floating HUD Toolbar se habilitado
@@ -56,7 +59,12 @@
       // 5. Registra Listeners de Mouse (Arraste 4 Lados, Splitters e Container da Página)
       this._bindMouseEvents();
 
-      // 6. Registra Atalhos Globais de Teclado
+      // 6. Registra Drag and Drop de Cards entre Divs (Reparenting)
+      if (this.options.enableDragDrop) {
+        this._initDragAndDrop();
+      }
+
+      // 7. Registra Atalhos Globais de Teclado
       this._bindKeyboardEvents();
 
       // Restaura toggles salvos no localStorage
@@ -137,8 +145,126 @@
             if (data.h) card.style.height = data.h;
             if (data.mt) card.style.marginTop = data.mt;
             if (data.ml) card.style.marginLeft = data.ml;
+            if (data.parentId) {
+              const parent = document.getElementById(data.parentId);
+              if (parent && card.parentElement !== parent) {
+                parent.appendChild(card);
+              }
+            }
           } catch (e) {}
         }
+      });
+    },
+
+    /* ==========================================================================
+       Drag & Drop de Cartões entre Divs e Containers (Reparenting)
+       ========================================================================== */
+    _initDragAndDrop() {
+      const self = this;
+      let draggedCard = null;
+      let currentDropzone = null;
+
+      // Cria drop indicator
+      let indicator = document.getElementById('snapforgeDropIndicator');
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'snapforgeDropIndicator';
+        indicator.className = 'snapforge-drop-indicator';
+        indicator.style.display = 'none';
+      }
+      this.dropIndicator = indicator;
+
+      document.addEventListener('mousedown', (e) => {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle) return;
+        const card = handle.closest(self.options.cardSelector);
+        if (!card) return;
+
+        card.setAttribute('draggable', 'true');
+      });
+
+      document.addEventListener('dragstart', (e) => {
+        const card = e.target.closest(self.options.cardSelector);
+        if (!card) return;
+
+        self.pushHistory();
+        draggedCard = card;
+        card.classList.add('is-dragging-card');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.id || 'card');
+
+        document.querySelectorAll(self.options.dropzoneSelector).forEach((dz) => {
+          dz.classList.add('snapforge-dropzone-active');
+        });
+      });
+
+      document.addEventListener('dragover', (e) => {
+        if (!draggedCard) return;
+        const dropzone = e.target.closest(self.options.dropzoneSelector);
+        if (!dropzone) return;
+
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        currentDropzone = dropzone;
+
+        // Calcula sibling mais próximo para inserir antes ou depois
+        const siblings = Array.from(dropzone.querySelectorAll(self.options.cardSelector)).filter(c => c !== draggedCard);
+        let insertBeforeEl = null;
+
+        for (const sibling of siblings) {
+          const rect = sibling.getBoundingClientRect();
+          const midX = rect.left + rect.width / 2;
+          if (e.clientX < midX) {
+            insertBeforeEl = sibling;
+            break;
+          }
+        }
+
+        if (insertBeforeEl) {
+          dropzone.insertBefore(self.dropIndicator, insertBeforeEl);
+        } else {
+          dropzone.appendChild(self.dropIndicator);
+        }
+        self.dropIndicator.style.display = 'block';
+      });
+
+      document.addEventListener('dragleave', (e) => {
+        const dropzone = e.target.closest(self.options.dropzoneSelector);
+        if (dropzone && !dropzone.contains(e.relatedTarget)) {
+          if (self.dropIndicator.parentElement === dropzone) {
+            self.dropIndicator.style.display = 'none';
+          }
+        }
+      });
+
+      document.addEventListener('dragend', () => {
+        if (!draggedCard) return;
+
+        draggedCard.classList.remove('is-dragging-card');
+        draggedCard.removeAttribute('draggable');
+
+        if (self.dropIndicator && self.dropIndicator.parentElement) {
+          self.dropIndicator.parentElement.insertBefore(draggedCard, self.dropIndicator);
+          self.dropIndicator.style.display = 'none';
+          if (self.dropIndicator.parentElement) {
+            self.dropIndicator.parentElement.removeChild(self.dropIndicator);
+          }
+        }
+
+        document.querySelectorAll(self.options.dropzoneSelector).forEach((dz) => {
+          dz.classList.remove('snapforge-dropzone-active');
+        });
+
+        if (draggedCard.id && draggedCard.parentElement && draggedCard.parentElement.id) {
+          const currentSave = JSON.parse(localStorage.getItem(`${self.storagePrefix}_card_${draggedCard.id}`) || '{}');
+          currentSave.parentId = draggedCard.parentElement.id;
+          localStorage.setItem(`${self.storagePrefix}_card_${draggedCard.id}`, JSON.stringify(currentSave));
+        }
+
+        self.showToast('Card reposicionado entre containers!');
+        self._updateToolbarState();
+        draggedCard = null;
+        currentDropzone = null;
       });
     },
 
@@ -174,7 +300,7 @@
             ↪
           </button>
           <div class="snapforge-hud-sep"></div>
-          <button type="button" class="snapforge-btn" id="sfBtnExport" title="Exportar Layout para CSS, Tailwind ou JSON">
+          <button type="button" class="snapforge-btn" id="sfBtnExport" title="Exportar Layout para CSS, Tailwind, HTML ou JSON">
             📋 Exportar
           </button>
           <button type="button" class="snapforge-btn" id="sfBtnReset" title="Restaurar Dimensões Originais">
@@ -258,13 +384,14 @@
         <div class="snapforge-modal">
           <div class="snapforge-modal-header">
             <div class="snapforge-modal-title">
-              <span>⚡ Exportar Dimensões & Layout</span>
+              <span>⚡ SnapForge — Exportar Código & Layout</span>
             </div>
             <button class="snapforge-modal-close" id="sfModalCloseBtn">&times;</button>
           </div>
           <div class="snapforge-modal-tabs">
             <button class="snapforge-tab-btn active" data-tab="css">CSS Rules</button>
             <button class="snapforge-tab-btn" data-tab="tailwind">Tailwind Classes</button>
+            <button class="snapforge-tab-btn" data-tab="html">Estrutura HTML</button>
             <button class="snapforge-tab-btn" data-tab="json">JSON Snapshot</button>
           </div>
           <div class="snapforge-modal-body">
@@ -353,6 +480,16 @@
       const snap = this.captureSnapshot();
       if (format === 'json') {
         return JSON.stringify(snap, null, 2);
+      }
+
+      if (format === 'html') {
+        const pageEl = document.querySelector(this.options.pageSelector);
+        if (!pageEl) return '<!-- Container de página não encontrado -->';
+        const clone = pageEl.cloneNode(true);
+        // Limpa classes e estilos temporários do builder
+        clone.querySelectorAll('.drag-handle').forEach(h => h.remove());
+        clone.querySelectorAll('.is-dragging-card').forEach(c => c.classList.remove('is-dragging-card'));
+        return clone.outerHTML;
       }
 
       if (format === 'tailwind') {
@@ -559,7 +696,7 @@
 
         // C. Hover sobre Card (Mudança Inteligente de Cursor)
         const target = e.target.closest(self.options.cardSelector);
-        if (target && !e.target.closest('input, select, textarea, button, a, .snapforge-hud')) {
+        if (target && !e.target.closest('input, select, textarea, button, a, .snapforge-hud, .drag-handle')) {
           const rect = target.getBoundingClientRect();
           const hit = 12;
           const nearTop = Math.abs(e.clientY - rect.top) <= hit;
@@ -601,7 +738,7 @@
 
       document.addEventListener('mousedown', (e) => {
         if (!document.body.classList.contains('enable-resizing')) return;
-        if (e.target.closest('input, select, textarea, button, a, .snapforge-hud, .snapforge-modal-backdrop')) return;
+        if (e.target.closest('input, select, textarea, button, a, .snapforge-hud, .snapforge-modal-backdrop, .drag-handle')) return;
 
         // Clique em Card Individual
         const target = e.target.closest(self.options.cardSelector);
@@ -695,7 +832,8 @@
               w: activeCard.style.width,
               h: activeCard.style.height,
               mt: activeCard.style.marginTop,
-              ml: activeCard.style.marginLeft
+              ml: activeCard.style.marginLeft,
+              parentId: activeCard.parentElement && activeCard.parentElement.id ? activeCard.parentElement.id : null
             };
             localStorage.setItem(`${self.storagePrefix}_card_${activeCard.id}`, JSON.stringify(saveObj));
           }
@@ -811,7 +949,7 @@
     },
 
     /* ==========================================================================
-       Histórico (Undo / Redo / Snapshots)
+       Histórico (Undo / Redo / Snapshots com Suporte a Reparenting)
        ========================================================================== */
     captureSnapshot() {
       const snap = {
@@ -824,7 +962,9 @@
           h: card.style.height || '',
           mt: card.style.marginTop || '',
           ml: card.style.marginLeft || '',
-          flex: card.style.flex || ''
+          flex: card.style.flex || '',
+          parentId: card.parentElement && card.parentElement.id ? card.parentElement.id : null,
+          nextSiblingId: card.nextElementSibling && card.nextElementSibling.id ? card.nextElementSibling.id : null
         };
       });
       return snap;
@@ -845,7 +985,25 @@
             card.style.marginTop = c.mt || '';
             card.style.marginLeft = c.ml || '';
             card.style.flex = c.flex || '';
-            if (c.w || c.h || c.mt || c.ml) {
+
+            // Restaura posição entre pais e irmãos
+            if (c.parentId) {
+              const targetParent = document.getElementById(c.parentId);
+              if (targetParent) {
+                if (c.nextSiblingId) {
+                  const nextSib = document.getElementById(c.nextSiblingId);
+                  if (nextSib && nextSib.parentElement === targetParent) {
+                    targetParent.insertBefore(card, nextSib);
+                  } else {
+                    targetParent.appendChild(card);
+                  }
+                } else {
+                  targetParent.appendChild(card);
+                }
+              }
+            }
+
+            if (c.w || c.h || c.mt || c.ml || c.parentId) {
               localStorage.setItem(`${this.storagePrefix}_card_${id}`, JSON.stringify(c));
             } else {
               localStorage.removeItem(`${this.storagePrefix}_card_${id}`);

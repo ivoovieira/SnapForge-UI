@@ -42,9 +42,13 @@ O **SnapForge UI** é uma biblioteca universal, modular e com **zero dependênci
    * Exporta instantaneamente as dimensões e margens personalizadas para:
      * Regras **CSS nativo** prontas para colar na folha de estilos.
      * Classes utilitárias do **Tailwind CSS**.
+     * Estrutura **HTML limpa e atualizada** para salvar no arquivo do projeto.
      * Snapshot estruturado em **JSON** para salvar em backend ou localStorage.
 
-8. **Histórico de Edição: Desfazer (<kbd>Ctrl</kbd> + <kbd>Z</kbd>) & Refazer (<kbd>Ctrl</kbd> + <kbd>Y</kbd>):**
+8. **Arrastar e Soltar de uma Div para Outra (Drag & Drop Reparenting):**
+   * Alça visual `⠿` nos cartões para mover elementos entre colunas e seções livremente com indicador luminoso de inserção e histórico `Ctrl+Z`.
+
+9. **Histórico de Edição: Desfazer (<kbd>Ctrl</kbd> + <kbd>Z</kbd>) & Refazer (<kbd>Ctrl</kbd> + <kbd>Y</kbd>):**
    * Pilha de até 30 estados em memória com persistência opcional no `localStorage`.
 
 ---

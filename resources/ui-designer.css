@@ -397,3 +397,53 @@ body.enable-resizing .layout-resizer-vertical.is-dragging::after {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ==============================================================================
+   7. Drag & Drop Reparenting & Insertion Indicators
+   ============================================================================== */
+.drag-handle {
+  cursor: grab;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.drag-handle:hover {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.panel-card.is-dragging-card {
+  opacity: 0.45;
+  border: 1px dashed #3b82f6 !important;
+  transform: scale(0.98);
+}
+
+.snapforge-dropzone-active {
+  background: rgba(52, 90, 135, 0.08) !important;
+  outline: 2px dashed rgba(52, 90, 135, 0.6) !important;
+  outline-offset: -2px;
+}
+
+.snapforge-drop-indicator {
+  width: 4px;
+  min-height: 100px;
+  background: #00d4ff;
+  box-shadow: 0 0 10px #00d4ff, 0 0 20px rgba(0, 212, 255, 0.8);
+  border-radius: 2px;
+  margin: 0 4px;
+  pointer-events: none;
+  flex-shrink: 0;
+  animation: snapforgePulse 1.2s infinite alternate;
+}
+
+@keyframes snapforgePulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
