@@ -137,16 +137,19 @@ Copie `resources/ui-designer.css` e `resources/ui-designer.js` para o seu diret�
 Quando terminar de posicionar, reorganizar e redimensionar seus cartões na tela, clique no botão **📋 Exportar** no HUD flutuante ou execute via JavaScript:
 
 ```javascript
-// 1. Regras CSS limpas prontas para sua folha de estilos
+// 1. Regras CSS limpas prontas para sua folha de estilos Desktop
 SnapForge.exportLayout('css');
 
-// 2. Classes utilitárias do Tailwind CSS
+// 2. Bloco exclusivo de responsividade Mobile (@media) para colar no fim do CSS
+SnapForge.exportLayout('mobile');
+
+// 3. Classes utilitárias do Tailwind CSS
 SnapForge.exportLayout('tailwind');
 
-// 3. Estrutura HTML completa atualizada com as novas posições
+// 4. Estrutura HTML completa atualizada com as novas posições
 SnapForge.exportLayout('html');
 
-// 4. Snapshot estruturado em JSON para salvar em banco ou localStorage
+// 5. Snapshot estruturado em JSON para salvar em banco ou localStorage
 SnapForge.exportLayout('json');
 ```
 

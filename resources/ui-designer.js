@@ -97,6 +97,44 @@
       }
       this.guideV = gV;
       this.guideH = gH;
+      this._initDimensionBadge();
+    },
+
+    _initDimensionBadge() {
+      let b = document.getElementById('snapforgeDimBadge');
+      if (!b) {
+        b = document.createElement('div');
+        b.id = 'snapforgeDimBadge';
+        b.className = 'snapforge-dimension-badge';
+        document.body.appendChild(b);
+      }
+      this.dimBadge = b;
+    },
+
+    _showDimensionBadge(w, h, x, y, isSnapped = false) {
+      if (!this.dimBadge) return;
+      const roundedW = Math.round(w);
+      const roundedH = Math.round(h);
+      this.dimBadge.innerHTML = `<span>${roundedW}px</span><span class="sf-dim-sep">×</span><span>${roundedH}px</span>${isSnapped ? ' <span style="color:#00d4ff;">🧲</span>' : ''}`;
+      this.dimBadge.style.left = `${Math.round(x)}px`;
+      this.dimBadge.style.top = `${Math.round(y)}px`;
+      this.dimBadge.classList.add('show');
+      this.dimBadge.classList.toggle('sf-snapped', !!isSnapped);
+
+      const hudBox = document.getElementById('sfHudPixelBox');
+      if (hudBox) {
+        hudBox.innerHTML = `<span>${roundedW} × ${roundedH} px</span>`;
+      }
+    },
+
+    _hideDimensionBadge() {
+      if (this.dimBadge) {
+        this.dimBadge.classList.remove('show');
+      }
+      const hudBox = document.getElementById('sfHudPixelBox');
+      if (hudBox) {
+        hudBox.innerHTML = `<span>- × - px</span>`;
+      }
     },
 
     _showGuideV(x) {
@@ -114,6 +152,7 @@
     _hideGuides() {
       if (this.guideV) this.guideV.style.display = 'none';
       if (this.guideH) this.guideH.style.display = 'none';
+      this._hideDimensionBadge();
     },
 
     _findSnap(val, targets) {
@@ -282,6 +321,15 @@
           <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           <span>SnapForge</span>
         </div>
+        <div class="snapforge-hud-group" id="sfDeviceGroup">
+          <button type="button" class="snapforge-btn snapforge-device-btn active" id="sfDevDesktop" title="Visualização Desktop (100%)">🖥️</button>
+          <button type="button" class="snapforge-btn snapforge-device-btn" id="sfDevTablet" title="Visualização Tablet (768px)">💻</button>
+          <button type="button" class="snapforge-btn snapforge-device-btn" id="sfDevMobile" title="Visualização Mobile (390px)">📱</button>
+        </div>
+        <div class="snapforge-hud-pixel-box" id="sfHudPixelBox" title="Dimensões em tempo real">
+          <span>0 × 0 px</span>
+        </div>
+        <div class="snapforge-hud-sep"></div>
         <div class="snapforge-hud-group">
           <button type="button" class="snapforge-btn" id="sfBtnEdges" title="Alternar Modo Designer / Detecção de Bordas (Alt + D)">
             📐 Bordas <kbd>Alt+D</kbd>
@@ -317,6 +365,16 @@
         hud.classList.toggle('snapforge-minimized');
       });
 
+      hud.querySelector('#sfDevDesktop').addEventListener('click', () => {
+        this.setDeviceMode('desktop');
+      });
+      hud.querySelector('#sfDevTablet').addEventListener('click', () => {
+        this.setDeviceMode('tablet');
+      });
+      hud.querySelector('#sfDevMobile').addEventListener('click', () => {
+        this.setDeviceMode('mobile');
+      });
+
       hud.querySelector('#sfBtnEdges').addEventListener('click', () => {
         this.toggleEdges();
       });
@@ -344,6 +402,36 @@
       hud.querySelector('#sfBtnReset').addEventListener('click', () => {
         this.resetAll(true);
       });
+    },
+
+    setDeviceMode(mode = 'desktop') {
+      this.deviceMode = mode;
+      const pageEl = document.querySelector(this.options.pageSelector);
+
+      if (this.hud) {
+        const dBtn = this.hud.querySelector('#sfDevDesktop');
+        const tBtn = this.hud.querySelector('#sfDevTablet');
+        const mBtn = this.hud.querySelector('#sfDevMobile');
+        if (dBtn) dBtn.classList.toggle('active', mode === 'desktop');
+        if (tBtn) tBtn.classList.toggle('active', mode === 'tablet');
+        if (mBtn) mBtn.classList.toggle('active', mode === 'mobile');
+      }
+
+      if (pageEl) {
+        pageEl.classList.remove('snapforge-device-mobile', 'snapforge-device-tablet');
+        let width = '100%';
+        if (mode === 'tablet') {
+          pageEl.classList.add('snapforge-device-tablet');
+          width = '768px';
+        } else if (mode === 'mobile') {
+          pageEl.classList.add('snapforge-device-mobile');
+          width = '390px';
+        }
+        document.documentElement.style.setProperty('--page-width', width);
+      }
+
+      this.showToast(`Visualização: ${mode.toUpperCase()}`);
+      return mode;
     },
 
     _updateToolbarState() {
@@ -390,6 +478,7 @@
           </div>
           <div class="snapforge-modal-tabs">
             <button class="snapforge-tab-btn active" data-tab="css">CSS Rules</button>
+            <button class="snapforge-tab-btn" data-tab="mobile">Mobile CSS (@media)</button>
             <button class="snapforge-tab-btn" data-tab="tailwind">Tailwind Classes</button>
             <button class="snapforge-tab-btn" data-tab="html">Estrutura HTML</button>
             <button class="snapforge-tab-btn" data-tab="json">JSON Snapshot</button>
@@ -480,6 +569,43 @@
       const snap = this.captureSnapshot();
       if (format === 'json') {
         return JSON.stringify(snap, null, 2);
+      }
+
+      if (format === 'mobile' || format === 'mobile-css') {
+        let lines = [];
+        lines.push('/* ==========================================================================');
+        lines.push('   SnapForge UI — Mobile Responsive Overrides (@media)');
+        lines.push('   Cole este bloco no final da sua folha de estilos (style.css)');
+        lines.push('   ========================================================================== */');
+        lines.push('@media (max-width: 768px) {');
+        lines.push('  /* 1. Transforma grades horizontais em pilha vertical no mobile */');
+        lines.push('  .dashboard-row, [data-dropzone="true"] {');
+        lines.push('    flex-direction: column !important;');
+        lines.push('    gap: 12px !important;');
+        lines.push('  }');
+        lines.push('');
+        lines.push('  /* 2. Ajustes dos cartões para 100% de largura útil */');
+        const cardIds = Object.keys(snap.cards);
+        if (cardIds.length === 0) {
+          lines.push('  .panel-card {');
+          lines.push('    width: 100% !important;');
+          lines.push('    max-width: 100% !important;');
+          lines.push('    margin-left: 0 !important;');
+          lines.push('    margin-top: 10px !important;');
+          lines.push('  }');
+        } else {
+          cardIds.forEach((id) => {
+            lines.push(`  #${id} {`);
+            lines.push('    width: 100% !important;');
+            lines.push('    max-width: 100% !important;');
+            lines.push('    margin-left: 0 !important;');
+            lines.push('    margin-top: 10px !important;');
+            lines.push('    flex: none !important;');
+            lines.push('  }');
+          });
+        }
+        lines.push('}');
+        return lines.join('\n');
       }
 
       if (format === 'html') {
@@ -624,6 +750,7 @@
             newW = Math.max(350, Math.min(window.innerWidth - pr.left - 20, newW));
             document.documentElement.style.setProperty('--page-width', `${newW}px`);
             activePage.style.width = `${newW}px`;
+            self._showDimensionBadge(newW, activePage.offsetHeight, e.clientX, e.clientY, snap.snapped);
           } else if (activePageDir === 'page-s') {
             const snap = self._findSnap(e.clientY, [window.innerHeight - 20]);
             let newH = startH + deltaY;
@@ -635,6 +762,7 @@
             }
             newH = Math.max(250, newH);
             activePage.style.minHeight = `${newH}px`;
+            self._showDimensionBadge(activePage.offsetWidth, newH, e.clientX, e.clientY, snap.snapped);
           }
           return;
         }
@@ -643,9 +771,11 @@
         if (activeCard && activeDir) {
           let deltaX = e.clientX - startMouseX;
           let deltaY = e.clientY - startMouseY;
+          let lastSnapped = false;
 
           if (activeDir === 's') {
             const snap = self._findSnap(e.clientY, siblingTargetsY);
+            lastSnapped = snap.snapped;
             if (snap.snapped) {
               deltaY = snap.snapVal - startMouseY;
               self._showGuideH(snap.snapVal);
@@ -656,6 +786,7 @@
             activeCard.style.height = `${newH}px`;
           } else if (activeDir === 'n') {
             const snap = self._findSnap(e.clientY, siblingTargetsY);
+            lastSnapped = snap.snapped;
             if (snap.snapped) {
               deltaY = snap.snapVal - startMouseY;
               self._showGuideH(snap.snapVal);
@@ -668,6 +799,7 @@
             activeCard.style.height = `${newH}px`;
           } else if (activeDir === 'e') {
             const snap = self._findSnap(e.clientX, siblingTargetsX);
+            lastSnapped = snap.snapped;
             if (snap.snapped) {
               deltaX = snap.snapVal - startMouseX;
               self._showGuideV(snap.snapVal);
@@ -679,6 +811,7 @@
             activeCard.style.flex = 'none';
           } else if (activeDir === 'w') {
             const snap = self._findSnap(e.clientX, siblingTargetsX);
+            lastSnapped = snap.snapped;
             if (snap.snapped) {
               deltaX = snap.snapVal - startMouseX;
               self._showGuideV(snap.snapVal);
@@ -691,6 +824,9 @@
             activeCard.style.width = `${newW}px`;
             activeCard.style.flex = 'none';
           }
+
+          // Exibe Popup Dinâmico com Dimensões em Pixels
+          self._showDimensionBadge(activeCard.offsetWidth, activeCard.offsetHeight, e.clientX, e.clientY, lastSnapped);
           return;
         }
 

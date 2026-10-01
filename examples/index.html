@@ -793,16 +793,13 @@
   <!-- Motor SnapForge UI -->
   <script src="../resources/ui-designer.js"></script>
   <script>
-    // Seletor de dispositivo
+    // Seletor de dispositivo integrado ao SnapForge
     function setDeviceView(width, btn) {
       document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const page = document.querySelector('.app-page');
-      if (page) {
-        page.style.maxWidth = width;
-        document.documentElement.style.setProperty('--page-width', width);
-        SnapForge.showToast(`Visualização alternada para ${btn.textContent.trim()}`);
-      }
+      if (width === '100%') SnapForge.setDeviceMode('desktop');
+      else if (width === '768px') SnapForge.setDeviceMode('tablet');
+      else if (width === '390px') SnapForge.setDeviceMode('mobile');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
