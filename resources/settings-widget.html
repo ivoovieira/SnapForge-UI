@@ -1,0 +1,42 @@
+<!-- ==============================================================================
+     Widget de Configuração Reutilizável: Layout & Detecção de Bordas
+     ============================================================================== -->
+<div class="panel-card" style="box-sizing:border-box;">
+  <div class="panel-card-head">
+    <h3>Ajustes de Layout & Detecção de Bordas (Modo Designer)</h3>
+  </div>
+  <div class="panel-card-body" style="padding:16px;">
+    
+    <!-- Switch 1: Redimensionamento Interativo nos 4 Lados -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:6px; margin-bottom:12px;">
+      <div>
+        <strong style="display:block; font-size:14px;">Redimensionamento com Mouse (4 Lados)</strong>
+        <span style="font-size:12px; color:#8b90a0;">Arraste qualquer borda (cima, baixo, esquerda ou direita)</span>
+      </div>
+      <label class="switch-toggle-custom">
+        <input type="checkbox" id="toggleResizeInput" onchange="document.body.classList.toggle('enable-resizing', this.checked); localStorage.setItem('ui_designer_resizing', this.checked ? 'true' : 'false');">
+        <span class="slider-round"></span>
+      </label>
+    </div>
+
+    <!-- Switch 2: Detecção de Bordas (Outlines) -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:6px; margin-bottom:16px;">
+      <div>
+        <strong style="display:block; font-size:14px;">Detecção de Bordas (Alt + D)</strong>
+        <span style="font-size:12px; color:#8b90a0;">Contornos milimétricos sem somar pixels ou quebrar grid</span>
+      </div>
+      <label class="switch-toggle-custom">
+        <input type="checkbox" id="toggleEdgesInput" onchange="document.body.classList.toggle('debug-edges', this.checked); localStorage.setItem('ui_designer_edges', this.checked ? 'true' : 'false');">
+        <span class="slider-round"></span>
+      </label>
+    </div>
+
+    <!-- Ações de Restauração -->
+    <div style="display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.08); padding-top:12px;">
+      <button type="button" class="btn-clean-action" onclick="resetAllCustomSizes()">
+        ↺ Restaurar Todos os Painéis (Padrão 100%)
+      </button>
+    </div>
+
+  </div>
+</div>

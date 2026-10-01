@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnapForge UI — Interactive Playground & Live Demo</title>
+  <link rel="stylesheet" href="../resources/ui-designer.css">
+  <style>
+    :root {
+      --header-height: 60px;
+      --sidebar-width: 250px;
+      --bg-dark: #090d16;
+      --bg-card: #111726;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 1. Header Global com Linha Contínua */
+    .top-header-clean {
+      height: var(--header-height);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: rgba(17, 23, 38, 0.7);
+      backdrop-filter: blur(10px);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      color: #60a5fa;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 9999px;
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    /* 2. Container Principal (Sidebar + Workspace) */
+    .app-workspace {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - var(--header-height));
+      overflow: hidden;
+    }
+
+    /* 3. Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: 180px;
+      max-width: 480px;
+      background: #0d121f;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar-nav {
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-link:hover, .sidebar-link.active {
+      background: rgba(255, 255, 255, 0.05);
+      color: #ffffff;
+    }
+
+    .sidebar-link.active {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    /* 4. Canvas da Página (Caixa Delimitadora Azul) */
+    .page-viewport {
+      flex: 1;
+      overflow: auto;
+      padding: 24px;
+      background: #070a12;
+      position: relative;
+    }
+
+    .app-page {
+      max-width: var(--page-width, 100%);
+      min-height: 520px;
+      background: rgba(17, 23, 38, 0.35);
+      border: 1px dashed rgba(59, 130, 246, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .banner-welcome {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(14, 165, 233, 0.1) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .banner-welcome h2 {
+      font-size: 16px;
+      color: #93c5fd;
+      margin-bottom: 4px;
+    }
+
+    .banner-welcome p {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .keys-hint {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .key-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: monospace;
+      color: #38bdf8;
+    }
+
+    /* 5. Grid de Painéis Resizáveis */
+    .dashboard-row {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+      min-height: 240px;
+    }
+
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .panel-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .panel-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Simulação de Gráfico de Barras */
+    .chart-bar-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      height: 120px;
+      padding: 12px 0 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .chart-bar {
+      flex: 1;
+      background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.3s ease;
+      position: relative;
+    }
+
+    .chart-bar:hover {
+      background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+    }
+
+    .chart-bar::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    /* Lista de Itens / Tarefas */
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .task-badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .badge-ok { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+    .badge-warn { background: rgba(234, 179, 8, 0.15); color: #facc15; }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+
+    /* Terminal de Logs */
+    .terminal-box {
+      background: #07090e;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #4ade80;
+      line-height: 1.5;
+      overflow-y: auto;
+      flex: 1;
+    }
+  </style>
+</head>
+<body class="enable-resizing">
+
+  <!-- 1. Header Global -->
+  <header class="top-header-clean">
+    <div class="brand-section">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      <span>SnapForge UI</span>
+      <span class="badge-pill">Playground Demo</span>
+    </div>
+
+    <div class="header-actions">
+      <span style="font-size:12px; color:#8b90a0;">Alterne com <b>Alt + D</b> (Bordas) ou <b>Alt + R</b> (Arraste)</span>
+      <button class="btn-clean-action" style="padding:6px 12px; font-size:12px; border-radius:6px; background:#2563eb; color:#fff; border:none; cursor:pointer;" onclick="SnapForge.openExportModal()">
+        Exportar Layout
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Workspace com Sidebar e Canvas -->
+  <div class="app-workspace">
+
+    <!-- Barra Lateral -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span>Navegação & Módulos</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="sidebar-link active">📊 Dashboard Geral</a>
+        <a href="#" class="sidebar-link">🧩 Componentes UI</a>
+        <a href="#" class="sidebar-link">🧲 Teste de Ímã</a>
+        <a href="#" class="sidebar-link">📐 Caixa Delimitadora</a>
+        <a href="#" class="sidebar-link">⚙️ Preferências</a>
+      </nav>
+      <div style="padding:16px; margin-top:auto; font-size:11px; color:#64748b; border-top:1px solid var(--border-color);">
+        Arraste a borda direita desta sidebar com o mouse.
+      </div>
+    </aside>
+
+    <!-- Divisor Arrastável Lateral -->
+    <div class="layout-resizer" title="Arraste para redimensionar a sidebar"></div>
+
+    <!-- Área Principal de Design -->
+    <main class="page-viewport">
+      <div class="app-page active">
+
+        <!-- Banner com Instruções Rápidas -->
+        <div class="banner-welcome">
+          <div>
+            <h2>Bem-vindo ao SnapForge UI Playground</h2>
+            <p>Passe o mouse perto de <b>qualquer uma das 4 bordas</b> dos cartões para redimensionar. Aproxime-se das bordas vizinhas para sentir a atração do <b>ímã magnético ciano</b>.</p>
+          </div>
+          <div class="keys-hint">
+            <span class="key-badge">Alt + D</span>
+            <span class="key-badge">Ctrl + Z</span>
+            <span class="key-badge">Ctrl + Y</span>
+          </div>
+        </div>
+
+        <!-- Linha Superior de Painéis -->
+        <div class="dashboard-row">
+          
+          <!-- Card 1: Métricas -->
+          <div class="panel-card" id="card-metrics">
+            <div class="panel-card-head">
+              <span class="panel-card-title">📈 Tráfego & Conversão</span>
+              <span class="badge-pill">+28.4%</span>
+            </div>
+            <div class="panel-card-body">
+              <div class="chart-bar-container">
+                <div class="chart-bar" style="height: 45%;" data-label="Seg"></div>
+                <div class="chart-bar" style="height: 70%;" data-label="Ter"></div>
+                <div class="chart-bar" style="height: 55%;" data-label="Qua"></div>
+                <div class="chart-bar" style="height: 90%;" data-label="Qui"></div>
+                <div class="chart-bar" style="height: 65%;" data-label="Sex"></div>
+                <div class="chart-bar" style="height: 80%;" data-label="Sáb"></div>
+                <div class="chart-bar" style="height: 95%;" data-label="Dom"></div>
+              </div>
+              <div style="margin-top:24px; display:flex; justify-content:space-between; font-size:12px;">
+                <span>Total Semanal: <b>42.840 acessos</b></span>
+                <span style="color:#4ade80;">99.9% Uptime</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Tarefas -->
+          <div class="panel-card" id="card-tasks">
+            <div class="panel-card-head">
+              <span class="panel-card-title">📋 Backlog & Status</span>
+              <span class="badge-ok">4 Concluídas</span>
+            </div>
+            <div class="panel-card-body">
+              <div class="task-item">
+                <span>Implementar Snapping Magnético</span>
+                <span class="task-badge badge-ok">Pronto</span>
+              </div>
+              <div class="task-item">
+                <span>Criar Floating Toolbar (HUD)</span>
+                <span class="task-badge badge-ok">Pronto</span>
+              </div>
+              <div class="task-item">
+                <span>Exportador de CSS e Tailwind</span>
+                <span class="task-badge badge-info">Novo</span>
+              </div>
+              <div class="task-item">
+                <span>Sincronização com GitHub</span>
+                <span class="task-badge badge-warn">Ativo</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Divisor Horizontal Arrastável entre Linhas -->
+        <div class="layout-resizer-vertical" title="Arraste para redimensionar verticalmente"></div>
+
+        <!-- Linha Inferior de Painéis -->
+        <div class="dashboard-row">
+
+          <!-- Card 3: Terminal de Eventos -->
+          <div class="panel-card" id="card-logs">
+            <div class="panel-card-head">
+              <span class="panel-card-title">⚡ Log de Interações</span>
+              <span class="badge-pill">Em tempo real</span>
+            </div>
+            <div class="panel-card-body">
+              <div class="terminal-box" id="logBox">
+                [00:00:00] SnapForge UI inicializado com sucesso.<br>
+                [00:00:00] Guias magnéticas prontas (threshold = 14px).<br>
+                [00:00:00] Pressione Alt+D para ligar o Modo Designer com contornos milimétricos.<br>
+                [00:00:00] Arraste os cards para testar o histórico e o ímã magnético.
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Ajustes Rápidos -->
+          <div class="panel-card" id="card-settings">
+            <div class="panel-card-head">
+              <span class="panel-card-title">⚙️ Controles Rápidos</span>
+            </div>
+            <div class="panel-card-body" style="gap:10px;">
+              <p style="font-size:12px; line-height:1.5;">
+                O SnapForge UI funciona em qualquer framework (React, Vue, Svelte, Django, Flask ou HTML puro) com zero dependências externas.
+              </p>
+              <div style="display:flex; gap:8px; margin-top:auto;">
+                <button class="snapforge-btn active" style="flex:1; justify-content:center;" onclick="SnapForge.toggleEdges()">
+                  Toggle Bordas
+                </button>
+                <button class="snapforge-btn" style="flex:1; justify-content:center;" onclick="SnapForge.resetAll(true)">
+                  Resetar
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Inclusão do Motor JavaScript SnapForge UI -->
+  <script src="../resources/ui-designer.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      SnapForge.init({
+        cardSelector: '.panel-card',
+        pageSelector: '.app-page.active',
+        storagePrefix: 'snapforge_demo',
+        showToolbar: true,
+        enableMagneticSnap: true,
+        snapThreshold: 14
+      });
+
+      // Log interativo
+      const logBox = document.getElementById('logBox');
+      function addLog(msg) {
+        if (!logBox) return;
+        const time = new Date().toLocaleTimeString();
+        logBox.innerHTML += `<br>[${time}] ${msg}`;
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+          addLog('Atalho Alt+D acionado: Alternou contornos');
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+          addLog('Atalho Desfazer acionado');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
